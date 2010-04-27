@@ -105,8 +105,14 @@ def ls():
         sys.argv.append('.')
     i=2
     while i<len(sys.argv):
-        targetname=os.path.abspath(sys.argv[i])
-        targetinode=os.stat(sys.argv[i])[1]
+        targetgivenname=sys.argv[i]
+        targetabsname=os.path.abspath(sys.argv[i])
+        if os.path.exists(targetabsname):
+            targetinode=os.stat(sys.argv[i])[1]
+        else:
+            print "'"+str(targetgivenname)+"': No such file or directory"
+            i+=1
+            break
         print str(targetinode)+" "+str(targetname)
         i+=1        
     sys.exit(0)
