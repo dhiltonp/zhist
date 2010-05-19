@@ -130,7 +130,7 @@ def ls():
     if len(sys.argv)<3:
         # Then the person simply did "zhist ls" and the implied target is PWD
         sys.argv.append('.')
-    allargs=False   # user can specify -- to indicate all the rest are not options, allows 
+    allargs=False   # user can specify "--" to indicate all the rest are not options, allows 
                     # users to specify files which are named "-n" and "-i"
     searchnames=True    # by default, we're not searching based on inodes
     targets=[]
@@ -152,7 +152,7 @@ def ls():
         targetsnaps=[]
         for snapname in os.listdir(snapdir):
             if os.path.exists(snapdir+'/'+snapname+'/'+suffix):
-                mystat=os.stat(snapdir+'/'+snapname+'/'+suffix)
+                mystat=os.lstat(snapdir+'/'+snapname+'/'+suffix)
                 mode=mystat[0]   # protection bits
                 inode=mystat[1]
                 uid=mystat[4]
@@ -164,7 +164,19 @@ def ls():
                 # Having the tuple, which includes mtime, allows us to easily identify repeat (non-unique) items
                 # and of course, the pathname is needed in order to display the pathname.
                 targetsnaps.append((mtime,(mtime,mode,inode,uid,gid,size),snapdir+'/'+snapname+'/'+suffix))
+        # I'd like the output to also consider the item that's in the present filesystem,
+        # and since I'm writing it, that's the behavior it will have.  ;-)
+        if os.path.exists(targetabsname):
+            mystat=os.lstat(targetabsname)
+            mode=mystat[0]   # protection bits
+            inode=mystat[1]
+            uid=mystat[4]
+            gid=mystat[5]
+            size=mystat[6]
+            mtime=mystat[8]
+            targetsnaps.append((mtime,(mtime,mode,inode,uid,gid,size),targetabsname))            
         targetsnaps.sort()
+        targetsnaps.reverse()
         newstat=()
         oldstat=()
         for targetsnap in targetsnaps:
