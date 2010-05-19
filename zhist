@@ -1,0 +1,225 @@
+#!/usr/bin/python
+# 
+# Copyright (c) 2010 Edward Harvey
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+
+import sys, os, os.path, getopt
+
+def usage(subcommand=""):
+    if subcommand == "":
+        print """
+usage: zhist subcommand [options] [args]
+Type 'zhist help subcommand' for help on a specific subcommand.
+
+Available subcommands:
+   cp
+   help
+   locate
+   ls
+   rollback
+   
+"""
+    elif subcommand == "cp":
+        print """
+usage: zhist cp [options] src@snapshot dst
+
+Copies a file or directory from snapshot to a new name in the present filesystem.
+src@snapshot
+      Specifies the name of the file or directory, and snapshot. If src is a directory, 
+      the copy will be recursive.
+dst   
+      Specifies the new name.  Cannot be omitted.  Use '.' to specify the current directory.
+      If dst is an already existing directory, then an object having the same name
+      as src will be created inside dst, mimicking the "normal" behavior of the
+      operating system "cp" command. If dst already exists, zhist will abort,
+      unless --force or --sure are specified.
+
+Valid Options:
+-f,--force
+      If the destination already exists, clobber it.  This will be done "safe" meaning
+      rename destination, write destination, and remove the temp object.  If there is a 
+      failure to write destination, an attempt will be made to put things back the way
+      they were before. 
+-s,--sure
+      If the destination already exists, clobber it, can't undo.  This implies --force 
+
+"""
+    elif subcommand == "locate":
+        print """
+usage: zhist locate filename[@snapshot]
+
+Generates the absolute path(s) to the snapshot(s) of the specified filename.
+
+"""
+    elif subcommand == "ls":
+        print """
+usage: zhist ls [options] filename
+
+Generates a list of all the available snapshot versions of the specified
+file or directory.
+
+Valid Options:
+-i
+      Generate list of available snapshots, searching by file id (inode,znode)
+      instead of searching by pathname/name.  This allows you to find snapshots
+      of things even if the pathname or name has changed.  So if you renamed "foo"
+      to "bar" and then look for snapshots of "bar" you will also find all the 
+      previous versions named "foo"
+      (Not implemented yet, due to unavailability of reverse inode->name
+      lookup.  For more info see http:// )
+-n
+      Generate list of available snapshots, searching by pathname/name.  Does not
+      locate things whose pathname/name have changed.  Instead, locates items which
+      have the name and location of the searched-for path.  So if you replaced
+      "foo" with something else named "foo" this will identify all the different
+      things named "foo"
+      (This is the default behavior.)
+
+"""
+    elif subcommand == "rollback":
+        print """
+usage: zhist rollback [options] filename[@snapshot]
+
+Replaces the present version of an object, by a snapshot version.  If @snapshot
+is omitted, the most recent snapshot is assumed.
+
+Available options:
+    --sure   Will rollback "in-place."  If the rollback fails for some
+             reason, the present version will not be preserved.    
+
+"""
+    else:
+        print "Unknown help option "+str(command)
+
+def cp():
+    print "cp"
+    sys.exit(0)
+def locate():
+    print "locate"
+    sys.exit(0)
+def snapshotdir(pathname=''):
+    if pathname.startswith('/'):
+        if pathname == '/':
+            if os.path.exists('/.zfs/snapshot'):
+                return '/.zfs/snapshot'
+            else:
+                return False
+        elif os.path.exists(pathname+'/.zfs/snapshot'):
+            return pathname+'/.zfs/snapshot'
+        else:
+            return snapshotdir(os.path.dirname(pathname))
+def ls():
+    if len(sys.argv)<3:
+        # Then the person simply did "zhist ls" and the implied target is PWD
+        sys.argv.append('.')
+    allargs=False   # user can specify "--" to indicate all the rest are not options, allows 
+                    # users to specify files which are named "-n" and "-i"
+    searchnames=True    # by default, we're not searching based on inodes
+    targets=[]
+    
+    for arg in sys.argv[2:]:
+        if not allargs:
+            if arg == '-i':
+                searchnames=False
+            elif arg == '-n':
+                searchnames=True
+            elif arg == '--':
+                allargs=True
+        targets.append(arg) 
+        
+    for target in targets:
+        targetabsname=os.path.abspath(target)
+        snapdir=snapshotdir(targetabsname)
+        suffix=targetabsname.replace(os.path.commonprefix([targetabsname,snapdir]),'')
+        targetsnaps=[]
+        for snapname in os.listdir(snapdir):
+            if os.path.exists(snapdir+'/'+snapname+'/'+suffix):
+                mystat=os.lstat(snapdir+'/'+snapname+'/'+suffix)
+                mode=mystat[0]   # protection bits
+                inode=mystat[1]
+                uid=mystat[4]
+                gid=mystat[5]
+                size=mystat[6]
+                mtime=mystat[8]
+                # This tuple is composed of:  ( an integer mtime, (a tuple), 'pathname' )
+                # Having the mtime as the first component makes it easy to sort the whole list
+                # Having the tuple, which includes mtime, allows us to easily identify repeat (non-unique) items
+                # and of course, the pathname is needed in order to display the pathname.
+                targetsnaps.append((mtime,(mtime,mode,inode,uid,gid,size),snapdir+'/'+snapname+'/'+suffix))
+        # I'd like the output to also consider the item that's in the present filesystem,
+        # and since I'm writing it, that's the behavior it will have.  ;-)
+        if os.path.exists(targetabsname):
+            mystat=os.lstat(targetabsname)
+            mode=mystat[0]   # protection bits
+            inode=mystat[1]
+            uid=mystat[4]
+            gid=mystat[5]
+            size=mystat[6]
+            mtime=mystat[8]
+            targetsnaps.append((mtime,(mtime,mode,inode,uid,gid,size),targetabsname))            
+        targetsnaps.sort()
+        targetsnaps.reverse()
+        newstat=()
+        oldstat=()
+        for targetsnap in targetsnaps:
+            newstat=targetsnap[1]
+            if newstat == oldstat:
+                # not written yet:
+                # if we have selected not to omit duplicates, 
+                #    then print
+                pass
+            else:
+                print targetsnap[2]   # this is the absolute name
+            oldstat=newstat
+                
+    sys.exit(0)
+def rollback():
+    print "rollback"
+    sys.exit(0)
+
+def main():
+    if len(sys.argv) <= 1:
+        usage()
+        sys.exit(2)
+    if sys.argv[1] == 'cp':
+        cp()
+        sys.exit(0)
+    elif sys.argv[1] == 'help':
+        try:
+            usage(sys.argv[2])
+        except:
+            usage()
+        sys.exit(2)
+    elif sys.argv[1] == 'locate':
+        locate()
+        sys.exit(0)
+    elif sys.argv[1] == 'ls':
+        ls()
+        sys.exit(0)
+    elif sys.argv[1] == 'rollback':
+        rollback()
+        sys.exit(0)
+    else:
+        usage()
+        sys.exit(2)
+    
+if __name__ == "__main__":
+  sys.exit(main())
