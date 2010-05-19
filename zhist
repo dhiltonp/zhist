@@ -30,91 +30,23 @@ usage: zhist subcommand [options] [args]
 Type 'zhist help subcommand' for help on a specific subcommand.
 
 Available subcommands:
-   cp
    help
-   locate
    ls
-   rollback
    
-"""
-    elif subcommand == "cp":
-        print """
-usage: zhist cp [options] src@snapshot dst
-
-Copies a file or directory from snapshot to a new name in the present filesystem.
-src@snapshot
-      Specifies the name of the file or directory, and snapshot. If src is a directory, 
-      the copy will be recursive.
-dst   
-      Specifies the new name.  Cannot be omitted.  Use '.' to specify the current directory.
-      If dst is an already existing directory, then an object having the same name
-      as src will be created inside dst, mimicking the "normal" behavior of the
-      operating system "cp" command. If dst already exists, zhist will abort,
-      unless --force or --sure are specified.
-
-Valid Options:
--f,--force
-      If the destination already exists, clobber it.  This will be done "safe" meaning
-      rename destination, write destination, and remove the temp object.  If there is a 
-      failure to write destination, an attempt will be made to put things back the way
-      they were before. 
--s,--sure
-      If the destination already exists, clobber it, can't undo.  This implies --force 
-
-"""
-    elif subcommand == "locate":
-        print """
-usage: zhist locate filename[@snapshot]
-
-Generates the absolute path(s) to the snapshot(s) of the specified filename.
-
 """
     elif subcommand == "ls":
         print """
-usage: zhist ls [options] filename
+usage: zhist ls [options] TARGET [TARGET...]
 
 Generates a list of all the available snapshot versions of the specified
 file or directory.
 
-Valid Options:
--i
-      Generate list of available snapshots, searching by file id (inode,znode)
-      instead of searching by pathname/name.  This allows you to find snapshots
-      of things even if the pathname or name has changed.  So if you renamed "foo"
-      to "bar" and then look for snapshots of "bar" you will also find all the 
-      previous versions named "foo"
-      (Not implemented yet, due to unavailability of reverse inode->name
-      lookup.  For more info see http:// )
--n
-      Generate list of available snapshots, searching by pathname/name.  Does not
-      locate things whose pathname/name have changed.  Instead, locates items which
-      have the name and location of the searched-for path.  So if you replaced
-      "foo" with something else named "foo" this will identify all the different
-      things named "foo"
-      (This is the default behavior.)
-
-"""
-    elif subcommand == "rollback":
-        print """
-usage: zhist rollback [options] filename[@snapshot]
-
-Replaces the present version of an object, by a snapshot version.  If @snapshot
-is omitted, the most recent snapshot is assumed.
-
-Available options:
-    --sure   Will rollback "in-place."  If the rollback fails for some
-             reason, the present version will not be preserved.    
+If no TARGET is specified, the present directory is assumed.
 
 """
     else:
         print "Unknown help option "+str(command)
 
-def cp():
-    print "cp"
-    sys.exit(0)
-def locate():
-    print "locate"
-    sys.exit(0)
 def snapshotdir(pathname=''):
     if pathname.startswith('/'):
         if pathname == '/':
@@ -150,8 +82,14 @@ def ls():
         snapdir=snapshotdir(targetabsname)
         suffix=targetabsname.replace(os.path.commonprefix([targetabsname,snapdir]),'')
         targetsnaps=[]
+        exists=os.path.exists
+        try:
+            exists=os.path.lexists
+        except:
+            print "Note: No such os.lexists. You must be using python < 2.4. Therefore forced to follow symlinks. Results questionable."
+            
         for snapname in os.listdir(snapdir):
-            if os.path.exists(snapdir+'/'+snapname+'/'+suffix):
+            if exists(snapdir+'/'+snapname+'/'+suffix):
                 mystat=os.lstat(snapdir+'/'+snapname+'/'+suffix)
                 mode=mystat[0]   # protection bits
                 inode=mystat[1]
@@ -166,7 +104,7 @@ def ls():
                 targetsnaps.append((mtime,(mtime,mode,inode,uid,gid,size),snapdir+'/'+snapname+'/'+suffix))
         # I'd like the output to also consider the item that's in the present filesystem,
         # and since I'm writing it, that's the behavior it will have.  ;-)
-        if os.path.exists(targetabsname):
+        if exists(targetabsname):
             mystat=os.lstat(targetabsname)
             mode=mystat[0]   # protection bits
             inode=mystat[1]
@@ -191,31 +129,18 @@ def ls():
             oldstat=newstat
                 
     sys.exit(0)
-def rollback():
-    print "rollback"
-    sys.exit(0)
-
 def main():
     if len(sys.argv) <= 1:
         usage()
         sys.exit(2)
-    if sys.argv[1] == 'cp':
-        cp()
-        sys.exit(0)
     elif sys.argv[1] == 'help':
         try:
             usage(sys.argv[2])
         except:
             usage()
         sys.exit(2)
-    elif sys.argv[1] == 'locate':
-        locate()
-        sys.exit(0)
     elif sys.argv[1] == 'ls':
         ls()
-        sys.exit(0)
-    elif sys.argv[1] == 'rollback':
-        rollback()
         sys.exit(0)
     else:
         usage()
