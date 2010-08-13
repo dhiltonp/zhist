@@ -80,7 +80,7 @@ def ls():
     for target in targets:
         targetabsname=os.path.abspath(target)
         snapdir=snapshotdir(targetabsname)
-        suffix=targetabsname.replace(os.path.commonprefix([targetabsname,snapdir]),'')
+        suffix=targetabsname.replace(os.path.commonprefix([targetabsname,snapdir]),'',1)
         targetsnaps=[]
         exists=os.path.exists
         try:
