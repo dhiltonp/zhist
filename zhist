@@ -40,12 +40,8 @@ def snapshotdir(pathname=''):
 
 def ls(files):
     files = files[0]
-    if len(files)==0:
-        # Then the person simply did "zhist ls" and the implied target is PWD
+    if len(files) == 0:
         files.append('.')
-    allargs=False   # user can specify "--" to indicate all the rest are not options, allows 
-                    # users to specify files which are named "-n" and "-i"
-    searchnames=True    # by default, we're not searching based on inodes
 
     for f in files:
         targetabsname=os.path.abspath(f)
@@ -101,6 +97,70 @@ def ls(files):
     sys.exit(0)
 
 
+def zfs_split(f):
+    """Returns f's full path, split into 3:
+        the highest mount point: "/mount/point/", leading and trailing "/"
+        the path within that mount point: "path/to/" with no leading but a trailing "/"
+        the filename, if it exists. If not, ""
+
+        An exception will be raised if:
+         - the path does not exist
+         - a symlink is passed in
+         - the mount point found is not zfs (does not have a .zfs folder)
+        """
+    # does the file exist?
+    if not os.path.exists(f):
+        raise Exception("file does not exist: "+f)
+
+    # get full path:
+    f = os.path.abspath(f)
+    if os.path.islink(f):
+        raise Exception("symlinks not supported (use realpath): "+f)
+
+    # get filename
+    filename = ''
+    if os.path.isfile(f):
+        filename = f.split("/")[-1]
+        f = '/'.join(f.split("/")[:-1])
+    
+    # get path to mount point
+    mount_point = f
+    while not os.path.ismount(mount_point):
+        mount_point = os.path.dirname(mount_point)
+    if mount_point[-1] is not '/':
+        mount_point += '/'
+    # check mount point for zfs-ness
+    if not os.path.exists(mount_point+".zfs"):
+        raise Exception("mount point isn't zfs('%s'): %s" % (mount_point, f))
+    if not os.path.isdir(mount_point+".zfs/snapshot"):
+        import platform
+        error = "snapshots do not exist or cannot be accessed ('%s'): %s" % (mount_point, f)
+        if platform.system() == "Darwin":
+            error += "\n(MacOS requires that snapshots be manually mounted; see the O3X FAQ)"
+        raise Exception(error)
+    
+    # get path from mount point
+    zfs_path = f[len(mount_point):]
+    if len(zfs_path) > 0 and zfs_path[-1] != '/':
+        zfs_path += "/"
+
+    return mount_point, zfs_path, filename
+
+
+def ls(files):
+    files = files[0]
+    if len(files) == 0:
+        files.append('.')
+
+    for f in files:
+        try:
+            mount_point, zfs_path, filename = zfs_split(f)
+        except Exception as e:
+            print e
+
+
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser("Lists all available snapshot versions of a specified file or directory.")
     parser.add_argument("file", action="append", nargs='*', help="file or directories to list")
@@ -113,4 +173,4 @@ def main():
     ls(args.file)
 
 if __name__ == "__main__":
-  sys.exit(main())
+    sys.exit(main())
