@@ -140,19 +140,17 @@ class ZHist:
                 print e
             print(f)
 
-        # see all snapshots
-
-        #
-
-    def t(self, mount_point, zfs_path, filename):
-        targetsnaps = []
-        snapdir = mount_point+".zfs/snapshot/"
-        for snapname in os.listdir(snapdir):
-            snapname += "/"
-            snapshot_path = snapdir+snapname+zfs_path+filename
-            if os.path.exists(snapshot_path):
-                print(snapshot_path)
-                mystat=os.lstat(snapshot_path)
+    def get_versions(self, mount_point, zfs_path):
+        versions = []
+        possible_versions = [mount_point+zfs_path]
+        snapshot_dir = mount_point+".zfs/snapshot/"
+        for snapshot in os.listdir(snapshot_dir):
+            snapshot += "/"
+            possible_versions.append(snapshot_dir+snapshot+zfs_path)
+        for version in possible_versions:
+            if os.path.exists(version):
+                print(version)
+                mystat=os.lstat(version)
                 mode=mystat[0]   # protection bits
                 inode=mystat[1]
                 uid=mystat[4]
@@ -163,8 +161,9 @@ class ZHist:
                 # Having the mtime as the first component makes it easy to sort the whole list
                 # Having the tuple, which includes mtime, allows us to easily identify repeat (non-unique) items
                 # and of course, the pathname is needed in order to display the pathname.
-                targetsnaps.append((mtime, (mtime,mode,inode,uid,gid,size), snapshot_path))
+                versions.append((version, mtime, (mtime,mode,inode,uid,gid,size)))
 
+        return versions
 
 
     def zfs_diff(self, mount_point, zfs_path, filename):

@@ -68,5 +68,19 @@ class TestSplit(TestCase):
         self.assertEquals(result, (mountpoint, 'no_dir/no_file'))
 
 
-class TestZHist(TestCase):
-    pass
+class TestGetVersions(TestCase):
+    def test_nothing_in_fs(self):
+        result = zhist.ZHist().get_versions(mountpoint, "nothing_in_fs")
+        self.assertEquals(result[0][0], mountpoint+"nothing_in_fs")
+        self.assertEqual(len(result), 1, "More than one version received")
+
+        result = zhist.ZHist().get_versions(mountpoint, "nothing_in_fs/imaginary_file")
+        self.assertEquals(result, [])
+
+        result = zhist.ZHist().get_versions(mountpoint, "nothing_in_fs/imaginary_dir/imaginary_file")
+        self.assertEquals(result, [])
+
+    def test_no_snapshots(self):
+        result = zhist.ZHist().get_versions(mountpoint, "no_snapshots/f1")
+        self.assertEquals(result[0][0], mountpoint+"no_snapshots/f1")
+        self.assertEqual(len(result), 1, "More than one version received")

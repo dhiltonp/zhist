@@ -29,19 +29,19 @@ zfs create $ZPOOL/nothing_in_fs
 
 # setup for test: no snapshots
 zfs create $ZPOOL/no_snapshots
-echo foo > $MOUNTPOINT/no_snapshots/bar
+echo foo > $MOUNTPOINT/no_snapshots/f1
 
 # setup for test: file exists, has multiple changes
 zfs create $ZPOOL/file_changed
 zfs snapshot $ZPOOL/file_changed@t1
-touch $MOUNTPOINT/file_changed/bar
+touch $MOUNTPOINT/file_changed/f1
 zfs snapshot $ZPOOL/file_changed@t2
-echo foo > $MOUNTPOINT/file_changed/bar
+echo foo > $MOUNTPOINT/file_changed/f1
 zfs snapshot $ZPOOL/file_changed@t3
 zfs snapshot $ZPOOL/file_changed@t4
-echo baz > $MOUNTPOINT/file_changed/bar
+echo baz > $MOUNTPOINT/file_changed/f1
 zfs snapshot $ZPOOL/file_changed@t5
-echo foo >> $MOUNTPOINT/file_changed/bar
+echo foo >> $MOUNTPOINT/file_changed/f1
 zfs snapshot $ZPOOL/file_changed@t6
 
 # setup for test: deleted file recovery
