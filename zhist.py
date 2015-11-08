@@ -100,30 +100,14 @@ def ls(files):
 class ZHist:
     def zfs_split(self, f):
         """
-        Returns f's full path, split into 3:
-        the highest mount point: "/mount/point/", leading and trailing "/"
-        the path within that mount point: "path/to/" with no leading but a trailing "/"
-        the filename, if it exists. If not, ""
+        Returns f's full path, split into 2:
+        the longest mount_point: "/mount/point/", leading and trailing "/"
+        the zfs_path within that mount point: "path/to" with no leading or trailing "/"
 
-        An exception will be raised if:
-         - the path does not exist
-         - a symlink is passed in
-         - the mount point found is not zfs (does not have a .zfs folder)
+        The zfs_path will never have a trailing "/", as both directories and files may exist with the same name
         """
-        # does the file exist?
-        if not os.path.exists(f):
-            raise Exception("file does not exist: "+f)
-
         # get full path:
         f = os.path.abspath(f)
-        if os.path.islink(f):
-            raise Exception("symlinks not supported (use realpath): "+f)
-
-        # get filename
-        filename = ''
-        if os.path.isfile(f):
-            filename = f.split("/")[-1]
-            f = '/'.join(f.split("/")[:-1])
 
         # get path to mount point
         mount_point = f
@@ -131,16 +115,11 @@ class ZHist:
             mount_point = os.path.dirname(mount_point)
         if mount_point[-1] is not '/':
             mount_point += '/'
-        # check mount point for .zfs
-        if not os.path.exists(mount_point+".zfs"):
-            raise Exception("mount point isn't zfs('%s'): %s" % (mount_point, f))
 
         # get path from mount point
         zfs_path = f[len(mount_point):]
-        if len(zfs_path) > 0 and zfs_path[-1] != '/':
-            zfs_path += "/"
 
-        return mount_point, zfs_path, filename
+        return mount_point, zfs_path
 
     def ls(self, files):
         files = files[0]
@@ -152,6 +131,7 @@ class ZHist:
         for f in files:
             try:
                 mount_point, zfs_path, filename = self.zfs_split(f)
+                self.t(mount_point, zfs_path, filename)
                 # by default, show all existing versions.
                 # if a flag is shown,
                 #mount_points.append(mount_point)
@@ -163,6 +143,27 @@ class ZHist:
         # see all snapshots
 
         #
+
+    def t(self, mount_point, zfs_path, filename):
+        targetsnaps = []
+        snapdir = mount_point+".zfs/snapshot/"
+        for snapname in os.listdir(snapdir):
+            snapname += "/"
+            snapshot_path = snapdir+snapname+zfs_path+filename
+            if os.path.exists(snapshot_path):
+                print(snapshot_path)
+                mystat=os.lstat(snapshot_path)
+                mode=mystat[0]   # protection bits
+                inode=mystat[1]
+                uid=mystat[4]
+                gid=mystat[5]
+                size=mystat[6]
+                mtime=mystat[8]
+                # This tuple is composed of:  ( an integer mtime, (a tuple), 'pathname' )
+                # Having the mtime as the first component makes it easy to sort the whole list
+                # Having the tuple, which includes mtime, allows us to easily identify repeat (non-unique) items
+                # and of course, the pathname is needed in order to display the pathname.
+                targetsnaps.append((mtime, (mtime,mode,inode,uid,gid,size), snapshot_path))
 
 
 

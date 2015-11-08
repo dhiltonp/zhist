@@ -21,13 +21,13 @@ mountpoint = '/Volumes/test_zhist_zpool1/'
 class TestSplit(TestCase):
     def test_root(self):
         result = zhist.ZHist().zfs_split("/")
-        self.assertEqual(result, ("/", "", ""))
+        self.assertEqual(result, ("/", ""))
 
     def test_dir(self):
         test_data = [
-            (mountpoint, (mountpoint, "", "")),
-            (mountpoint+"cwd", (mountpoint+"cwd/", "", "")),
-            (mountpoint+"cwd/a/b", (mountpoint+"cwd/", "a/b/", ""))]
+            (mountpoint, (mountpoint, "")),
+            (mountpoint+"cwd", (mountpoint+"cwd/", "")),
+            (mountpoint+"cwd/a/b", (mountpoint+"cwd/", "a/b"))]
         for path, expected_result in test_data:
             # absolute path
             result = zhist.ZHist().zfs_split(path)
@@ -45,26 +45,27 @@ class TestSplit(TestCase):
     def test_file(self):
         # absolute test
         result = zhist.ZHist().zfs_split(mountpoint+"test_file/f1")
-        self.assertEquals(result, (mountpoint+'test_file/', '', 'f1'))
+        self.assertEquals(result, (mountpoint+'test_file/', 'f1'))
 
         result = zhist.ZHist().zfs_split(mountpoint+"test_file/d1/f2")
-        self.assertEquals(result, (mountpoint+'test_file/', 'd1/', 'f2'))
+        self.assertEquals(result, (mountpoint+'test_file/', 'd1/f2'))
         # relative test
         with cd(mountpoint):
             result = zhist.ZHist().zfs_split("test_file/f1")
-            self.assertEquals(result, (mountpoint+'test_file/', '', 'f1'))
+            self.assertEquals(result, (mountpoint+'test_file/', 'f1'))
 
             result = zhist.ZHist().zfs_split("test_file/d1/f2")
-            self.assertEquals(result, (mountpoint+'test_file/', 'd1/', 'f2'))
+            self.assertEquals(result, (mountpoint+'test_file/', 'd1/f2'))
 
     def test_no_file(self):
-        with self.assertRaises(Exception):
-            zhist.ZHist().zfs_split("/thisfiledoesntexistandaoentuhasnothyrcdio")
-        with self.assertRaises(Exception):
-            zhist.ZHist().zfs_split("/thisdirdoesntexistandaoentuhasnothyrcdio/")
-        with self.assertRaises(Exception):
-            zhist.ZHist().zfs_split(
-                "/thisdirdoesntexistandaoentuhasnothyrcdio/thisfiledoesntexistandaoentuhasnothyrcdio")
+        result = zhist.ZHist().zfs_split(mountpoint+"no_file")
+        self.assertEquals(result, (mountpoint, 'no_file'))
+        result = zhist.ZHist().zfs_split(mountpoint+"no_dir")
+        self.assertEquals(result, (mountpoint, 'no_dir'))
+        result = zhist.ZHist().zfs_split(mountpoint+"no_dir/")
+        self.assertEquals(result, (mountpoint, 'no_dir'))
+        result = zhist.ZHist().zfs_split(mountpoint+"no_dir/no_file")
+        self.assertEquals(result, (mountpoint, 'no_dir/no_file'))
 
 
 class TestZHist(TestCase):
