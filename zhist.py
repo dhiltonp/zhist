@@ -22,6 +22,7 @@
 #
 import argparse
 import platform
+import subprocess
 import sys, os, os.path
 
 
@@ -131,7 +132,7 @@ class ZHist:
         for f in files:
             try:
                 mount_point, zfs_path, filename = self.zfs_split(f)
-                self.t(mount_point, zfs_path, filename)
+                versions = self.get_versions(mount_point, zfs_path)
                 # by default, show all existing versions.
                 # if a flag is shown,
                 #mount_points.append(mount_point)
@@ -141,29 +142,33 @@ class ZHist:
             print(f)
 
     def get_versions(self, mount_point, zfs_path):
+        """
+        uses a mount_point and zfs_path to get all available versions of a file.
+        Returns all found versions, along with the stat results
+        """
         versions = []
         possible_versions = [mount_point+zfs_path]
         snapshot_dir = mount_point+".zfs/snapshot/"
-        for snapshot in os.listdir(snapshot_dir):
+        for snapshot in self.get_snapshots(snapshot_dir):
             snapshot += "/"
             possible_versions.append(snapshot_dir+snapshot+zfs_path)
         for version in possible_versions:
             if os.path.exists(version):
                 print(version)
-                mystat=os.lstat(version)
-                mode=mystat[0]   # protection bits
-                inode=mystat[1]
-                uid=mystat[4]
-                gid=mystat[5]
-                size=mystat[6]
-                mtime=mystat[8]
-                # This tuple is composed of:  ( an integer mtime, (a tuple), 'pathname' )
-                # Having the mtime as the first component makes it easy to sort the whole list
-                # Having the tuple, which includes mtime, allows us to easily identify repeat (non-unique) items
-                # and of course, the pathname is needed in order to display the pathname.
-                versions.append((version, mtime, (mtime,mode,inode,uid,gid,size)))
+                stat=os.lstat(version)
+                versions.append((version, stat))
 
         return versions
+
+    def get_snapshots(self, snapshot_dir):
+        #subprocess.check_output("zfs set snapdir=visible test_zhist_zpool1/file_changed".split())
+        #subprocess.check_output("zfs mount test_zhist_zpool1/file_changed")
+        return os.listdir(snapshot_dir)
+        # https://openzfsonosx.org/wiki/FAQ#Q.29_How_can_I_access_the_.zfs_snapshot_directories.3F
+        # These notes seem out of date. I'll do what I can without them
+        #$ sudo zfs set snapdir=visible tank/bob
+        #$ sudo zfs mount tank/bob@yesterday
+        #$ ls -l /tank/bob/.zfs/snapshot/yesterday/
 
 
     def zfs_diff(self, mount_point, zfs_path, filename):

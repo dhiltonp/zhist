@@ -7,7 +7,7 @@ echo creating 64MB file: $ZPOOL
 head -c 68000000 /dev/zero > $ZPOOL
 echo creating zpool: $ZPOOL
 zpool create $ZPOOL `pwd`/$ZPOOL
-export MOUNTPOINT=$(zfs get mountpoint $ZPOOL | awk '{print $3}' | grep test)
+export MOUNTPOINT=$(zfs get -H mountpoint $ZPOOL | awk '{print $3}')
 
 # setup for test: check main fs (no actions needed)
 # also test behavior on non-zfs fs
