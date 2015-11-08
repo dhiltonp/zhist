@@ -24,6 +24,8 @@ import argparse
 import platform
 import subprocess
 import sys, os, os.path
+from contextlib import contextmanager
+
 
 
 def snapshotdir(pathname=''):
@@ -98,6 +100,36 @@ def ls(files):
     sys.exit(0)
 
 
+def get_volume_name(mount_point):
+    command = "zfs list -H -o name " + mount_point
+    output = subprocess.check_output(command.split()).strip()
+    return output
+
+
+@contextmanager
+def temporary_mount_snapshot(mount_point, snapshot):
+    #mount_point to snapshot
+    volume_name = get_volume_name(mount_point)
+    full_name = volume_name+"@"+snapshot
+
+    retval = subprocess.call(["zfs", "mount", full_name])
+    already_mounted = False
+
+    if retval == 0:
+        pass
+    elif retval == 1:
+        already_mounted = True
+    else:
+        sys.stderr.write("Unable to mount "+full_name+", results will be incomplete. (%d)\n" % retval)
+    try:
+        yield
+    finally:
+        if not already_mounted:
+            retval = subprocess.call(["zfs", "unmount", full_name])
+            if retval != 0:
+                sys.stderr.write("Unable to unmount "+full_name+" sorry (%d)!\n" % retval)
+
+
 class ZHist:
     def zfs_split(self, f):
         """
@@ -131,14 +163,16 @@ class ZHist:
 
         for f in files:
             try:
-                mount_point, zfs_path, filename = self.zfs_split(f)
+                mount_point, zfs_path = self.zfs_split(f)
                 versions = self.get_versions(mount_point, zfs_path)
+                import pprint
+                pprint.pprint(versions)
                 # by default, show all existing versions.
                 # if a flag is shown,
                 #mount_points.append(mount_point)
                 #self.zfs_diff(mount_point, zfs_path, filename)
             except Exception as e:
-                print e
+                print(e)
             print(f)
 
     def get_versions(self, mount_point, zfs_path):
@@ -147,18 +181,24 @@ class ZHist:
         Returns all found versions, along with the stat results
         """
         versions = []
-        possible_versions = [mount_point+zfs_path]
+        current_version = mount_point+zfs_path
+        if os.path.exists(current_version):
+            versions.append((current_version, os.lstat(current_version)))
+
         snapshot_dir = mount_point+".zfs/snapshot/"
         for snapshot in self.get_snapshots(snapshot_dir):
-            snapshot += "/"
-            possible_versions.append(snapshot_dir+snapshot+zfs_path)
-        for version in possible_versions:
-            if os.path.exists(version):
-                print(version)
-                stat=os.lstat(version)
-                versions.append((version, stat))
+            possible_version = snapshot_dir+snapshot+"/"+zfs_path
+            version_stat = self.stat(possible_version, mount_point, snapshot)
+            if version_stat:
+                versions.append((possible_version, version_stat))
 
         return versions
+
+    def stat(self, version, mount_point, snapshot):
+        with temporary_mount_snapshot(mount_point, snapshot):
+            if os.path.exists(version):
+                return os.lstat(version)
+            return None
 
     def get_snapshots(self, snapshot_dir):
         #subprocess.check_output("zfs set snapdir=visible test_zhist_zpool1/file_changed".split())

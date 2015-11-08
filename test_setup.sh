@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ZPOOL=test_zhist_zpool1
+export ZPOOL=test_zhist_zpool2
 
 # create test zpool
 echo creating 64MB file: $ZPOOL
@@ -31,18 +31,33 @@ zfs create $ZPOOL/nothing_in_fs
 zfs create $ZPOOL/no_snapshots
 echo foo > $MOUNTPOINT/no_snapshots/f1
 
+# setup for test: file added
+zfs create $ZPOOL/file_added
+zfs snapshot $ZPOOL/file_added@t1
+touch $MOUNTPOINT/file_added/f1
+zfs snapshot $ZPOOL/file_added@t2
+
+# setup for test: file removed
+zfs create $ZPOOL/file_removed
+zfs snapshot $ZPOOL/file_removed@t1
+touch $MOUNTPOINT/file_removed/f1
+zfs snapshot $ZPOOL/file_removed@t2
+rm $MOUNTPOINT/file_removed/f1
+
 # setup for test: file exists, has multiple changes
 zfs create $ZPOOL/file_changed
 zfs snapshot $ZPOOL/file_changed@t1
 touch $MOUNTPOINT/file_changed/f1
 zfs snapshot $ZPOOL/file_changed@t2
-echo foo > $MOUNTPOINT/file_changed/f1
-zfs snapshot $ZPOOL/file_changed@t3
-zfs snapshot $ZPOOL/file_changed@t4
-echo baz > $MOUNTPOINT/file_changed/f1
-zfs snapshot $ZPOOL/file_changed@t5
-echo foo >> $MOUNTPOINT/file_changed/f1
-zfs snapshot $ZPOOL/file_changed@t6
+
+#zfs snapshot $ZPOOL/file_changed@t2
+#echo foo > $MOUNTPOINT/file_changed/f1
+#zfs snapshot $ZPOOL/file_changed@t3
+#zfs snapshot $ZPOOL/file_changed@t4
+#echo baz > $MOUNTPOINT/file_changed/f1
+#zfs snapshot $ZPOOL/file_changed@t5
+#echo foo >> $MOUNTPOINT/file_changed/f1
+#zfs snapshot $ZPOOL/file_changed@t6
 
 # setup for test: deleted file recovery
 #zfs clone $ZPOOL/file_changed@t6 file_deleted

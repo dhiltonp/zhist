@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ZPOOL=test_zhist_zpool1
+export ZPOOL=test_zhist_zpool2
 
 # destroy zpool
 zpool destroy -f $ZPOOL
