@@ -97,61 +97,80 @@ def ls(files):
     sys.exit(0)
 
 
-def zfs_split(f):
-    """
-    Returns f's full path, split into 3:
-    the highest mount point: "/mount/point/", leading and trailing "/"
-    the path within that mount point: "path/to/" with no leading but a trailing "/"
-    the filename, if it exists. If not, ""
+class ZHist:
+    def zfs_split(self, f):
+        """
+        Returns f's full path, split into 3:
+        the highest mount point: "/mount/point/", leading and trailing "/"
+        the path within that mount point: "path/to/" with no leading but a trailing "/"
+        the filename, if it exists. If not, ""
 
-    An exception will be raised if:
-     - the path does not exist
-     - a symlink is passed in
-     - the mount point found is not zfs (does not have a .zfs folder)
-    """
-    # does the file exist?
-    if not os.path.exists(f):
-        raise Exception("file does not exist: "+f)
+        An exception will be raised if:
+         - the path does not exist
+         - a symlink is passed in
+         - the mount point found is not zfs (does not have a .zfs folder)
+        """
+        # does the file exist?
+        if not os.path.exists(f):
+            raise Exception("file does not exist: "+f)
 
-    # get full path:
-    f = os.path.abspath(f)
-    if os.path.islink(f):
-        raise Exception("symlinks not supported (use realpath): "+f)
+        # get full path:
+        f = os.path.abspath(f)
+        if os.path.islink(f):
+            raise Exception("symlinks not supported (use realpath): "+f)
 
-    # get filename
-    filename = ''
-    if os.path.isfile(f):
-        filename = f.split("/")[-1]
-        f = '/'.join(f.split("/")[:-1])
+        # get filename
+        filename = ''
+        if os.path.isfile(f):
+            filename = f.split("/")[-1]
+            f = '/'.join(f.split("/")[:-1])
 
-    # get path to mount point
-    mount_point = f
-    while not os.path.ismount(mount_point):
-        mount_point = os.path.dirname(mount_point)
-    if mount_point[-1] is not '/':
-        mount_point += '/'
-    # check mount point for .zfs
-    if not os.path.exists(mount_point+".zfs"):
-        raise Exception("mount point isn't zfs('%s'): %s" % (mount_point, f))
+        # get path to mount point
+        mount_point = f
+        while not os.path.ismount(mount_point):
+            mount_point = os.path.dirname(mount_point)
+        if mount_point[-1] is not '/':
+            mount_point += '/'
+        # check mount point for .zfs
+        if not os.path.exists(mount_point+".zfs"):
+            raise Exception("mount point isn't zfs('%s'): %s" % (mount_point, f))
 
-    # get path from mount point
-    zfs_path = f[len(mount_point):]
-    if len(zfs_path) > 0 and zfs_path[-1] != '/':
-        zfs_path += "/"
+        # get path from mount point
+        zfs_path = f[len(mount_point):]
+        if len(zfs_path) > 0 and zfs_path[-1] != '/':
+            zfs_path += "/"
 
-    return mount_point, zfs_path, filename
+        return mount_point, zfs_path, filename
+
+    def ls(self, files):
+        files = files[0]
+        if len(files) == 0:
+            files.append('.')
+
+        mount_points = []
+
+        for f in files:
+            try:
+                mount_point, zfs_path, filename = self.zfs_split(f)
+                # by default, show all existing versions.
+                # if a flag is shown,
+                #mount_points.append(mount_point)
+                #self.zfs_diff(mount_point, zfs_path, filename)
+            except Exception as e:
+                print e
+            print(f)
+
+        # see all snapshots
+
+        #
 
 
-def ls(files):
-    files = files[0]
-    if len(files) == 0:
-        files.append('.')
 
-    for f in files:
-        try:
-            mount_point, zfs_path, filename = zfs_split(f)
-        except Exception as e:
-            print e
+    def zfs_diff(self, mount_point, zfs_path, filename):
+        pass
+
+
+
 
 
 def osx_test():
@@ -163,14 +182,15 @@ def osx_test():
 def parse_arguments():
     parser = argparse.ArgumentParser("Lists all available snapshot versions of a specified file or directory.")
     parser.add_argument("file", action="append", nargs='*', help="file or directories to list")
+    #options: show checksum, size, date modified...
     args = parser.parse_args()
     return args
 
 
 def main():
-    osx_test()
     args = parse_arguments()
-    ls(args.file)
+    osx_test()
+    ZHist().ls(args.file)
 
 if __name__ == "__main__":
     sys.exit(main())
