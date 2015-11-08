@@ -21,8 +21,8 @@
 # THE SOFTWARE.
 #
 import argparse
-import optparse
-import sys, os, os.path, getopt
+import platform
+import sys, os, os.path
 
 
 def snapshotdir(pathname=''):
@@ -53,7 +53,7 @@ def ls(files):
             exists=os.path.lexists
         except:
             print("Note: No such os.lexists. You must be using python < 2.4. Therefore forced to follow symlinks. Results questionable.")
-            
+
         for snapname in os.listdir(snapdir):
             if exists(snapdir+'/'+snapname+'/'+suffix):
                 mystat=os.lstat(snapdir+'/'+snapname+'/'+suffix)
@@ -78,7 +78,7 @@ def ls(files):
             gid=mystat[5]
             size=mystat[6]
             mtime=mystat[8]
-            targetsnaps.append((mtime,(mtime,mode,inode,uid,gid,size),targetabsname))            
+            targetsnaps.append((mtime,(mtime,mode,inode,uid,gid,size),targetabsname))
         targetsnaps.sort()
         targetsnaps.reverse()
         newstat=()
@@ -87,27 +87,28 @@ def ls(files):
             newstat=targetsnap[1]
             if newstat == oldstat:
                 # not written yet:
-                # if we have selected not to omit duplicates, 
+                # if we have selected not to omit duplicates,
                 #    then print
                 pass
             else:
                 print(targetsnap[2])   # this is the absolute name
             oldstat=newstat
-                
+
     sys.exit(0)
 
 
 def zfs_split(f):
-    """Returns f's full path, split into 3:
-        the highest mount point: "/mount/point/", leading and trailing "/"
-        the path within that mount point: "path/to/" with no leading but a trailing "/"
-        the filename, if it exists. If not, ""
+    """
+    Returns f's full path, split into 3:
+    the highest mount point: "/mount/point/", leading and trailing "/"
+    the path within that mount point: "path/to/" with no leading but a trailing "/"
+    the filename, if it exists. If not, ""
 
-        An exception will be raised if:
-         - the path does not exist
-         - a symlink is passed in
-         - the mount point found is not zfs (does not have a .zfs folder)
-        """
+    An exception will be raised if:
+     - the path does not exist
+     - a symlink is passed in
+     - the mount point found is not zfs (does not have a .zfs folder)
+    """
     # does the file exist?
     if not os.path.exists(f):
         raise Exception("file does not exist: "+f)
@@ -122,23 +123,17 @@ def zfs_split(f):
     if os.path.isfile(f):
         filename = f.split("/")[-1]
         f = '/'.join(f.split("/")[:-1])
-    
+
     # get path to mount point
     mount_point = f
     while not os.path.ismount(mount_point):
         mount_point = os.path.dirname(mount_point)
     if mount_point[-1] is not '/':
         mount_point += '/'
-    # check mount point for zfs-ness
+    # check mount point for .zfs
     if not os.path.exists(mount_point+".zfs"):
         raise Exception("mount point isn't zfs('%s'): %s" % (mount_point, f))
-    if not os.path.isdir(mount_point+".zfs/snapshot"):
-        import platform
-        error = "snapshots do not exist or cannot be accessed ('%s'): %s" % (mount_point, f)
-        if platform.system() == "Darwin":
-            error += "\n(MacOS requires that snapshots be manually mounted; see the O3X FAQ)"
-        raise Exception(error)
-    
+
     # get path from mount point
     zfs_path = f[len(mount_point):]
     if len(zfs_path) > 0 and zfs_path[-1] != '/':
@@ -159,6 +154,10 @@ def ls(files):
             print e
 
 
+def osx_test():
+    if platform.system() == "Darwin" and os.geteuid() != 0:
+        raise Exception("MacOS needs root permissions (sudo) to mount snapshots; see the O3X FAQ.")
+    return True
 
 
 def parse_arguments():
@@ -169,6 +168,7 @@ def parse_arguments():
 
 
 def main():
+    osx_test()
     args = parse_arguments()
     ls(args.file)
 
