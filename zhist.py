@@ -20,13 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
+
+import time
+import collections
 import argparse
 import platform
 import subprocess
 import sys, os, os.path
 from contextlib import contextmanager
 
+#maemoize
+def get_snapshot_time(mount_point, snapshot):
+    volume_name = get_volume_name(mount_point)
+    full_snapshot_name = volume_name+"@"+snapshot
+    command = "zfs get -H -p -o value creation "+full_snapshot_name
+    output = subprocess.check_output(command.split()).strip()
+    return int(output)
 
+#maemoize
 def get_volume_name(mount_point):
     command = "zfs list -H -o name " + mount_point
     output = subprocess.check_output(command.split()).strip()
@@ -37,27 +48,30 @@ def get_volume_name(mount_point):
 def temporary_mount_snapshot(mount_point, snapshot):
     #mount_point to snapshot
     volume_name = get_volume_name(mount_point)
-    full_name = volume_name+"@"+snapshot
+    full_snapshot_name = volume_name+"@"+snapshot
 
     already_mounted = False
     with open(os.devnull, "w") as fnull:
-        retval = subprocess.call(["zfs", "mount", full_name], stderr=fnull)
+        retval = subprocess.call(["zfs", "mount", full_snapshot_name], stderr=fnull)
 
         if retval == 0:
             pass
         elif retval == 1:
             already_mounted = True
         else:
-            sys.stderr.write("Unable to mount "+full_name+", results will be incomplete. (%d)\n" % retval)
+            sys.stderr.write("Unable to mount "+full_snapshot_name+", results will be incomplete. (%d)\n" % retval)
 
     try:
         yield
     finally:
         if not already_mounted:
             with open(os.devnull, 'w') as fnull:
-                retval = subprocess.call(["zfs", "unmount", full_name], stderr=fnull, stdout=fnull)
+                retval = subprocess.call(["zfs", "unmount", full_snapshot_name], stderr=fnull, stdout=fnull)
                 if retval != 0:
-                    sys.stderr.write("Unable to unmount "+full_name+" sorry (%d)!\n" % retval)
+                    sys.stderr.write("Unable to unmount "+full_snapshot_name+" sorry (%d)!\n" % retval)
+
+
+Version = collections.namedtuple("Version", ['path', 'snapshot_time', 'stat_result'])
 
 
 class ZHist:
@@ -95,15 +109,17 @@ class ZHist:
             try:
                 mount_point, zfs_path = self.zfs_split(f)
                 versions = self.get_versions(mount_point, zfs_path)
-                import pprint
-                pprint.pprint(versions)
+                versions.sort(key=lambda v: v.snapshot_time)
+                for version in versions:
+                    print("%s %d" % (version.path, version.snapshot_time))
+                #import pprint
+                #pprint.pprint(versions)
                 # by default, show all existing versions.
                 # if a flag is shown,
                 #mount_points.append(mount_point)
                 #self.zfs_diff(mount_point, zfs_path, filename)
             except Exception as e:
                 print(e)
-            print(f)
 
     def get_versions(self, mount_point, zfs_path):
         """
@@ -113,14 +129,15 @@ class ZHist:
         versions = []
         current_version = mount_point+zfs_path
         if os.path.exists(current_version):
-            versions.append((current_version, os.lstat(current_version)))
+            versions.append(Version(current_version, int(time.time()), os.lstat(current_version)))
 
         snapshot_dir = mount_point+".zfs/snapshot/"
         for snapshot in self.get_snapshots(snapshot_dir):
             possible_version = snapshot_dir+snapshot+"/"+zfs_path
             version_stat = self.stat(possible_version, mount_point, snapshot)
+            snapshot_time = get_snapshot_time(mount_point, snapshot)
             if version_stat:
-                versions.append((possible_version, version_stat))
+                versions.append(Version(possible_version, snapshot_time, version_stat))
 
         return versions
 
