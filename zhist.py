@@ -129,7 +129,7 @@ class ZHist:
         versions = []
         current_version = mount_point+zfs_path
         if os.path.exists(current_version):
-            version = Version(current_version, int(time.time()), None)
+            version = Version(current_version, int(time.time()), os.lstat(current_version))
             versions.append(version)
         else:
             version = Version(current_version, int(time.time()), None)
