@@ -12,12 +12,12 @@ Currently the code has been tested on MacOS and OmniOS. Python version >= 2.7 is
 
 ```
 david$ ./zhist.py /zpools/test_zhist_zpool2/file_changed/f1
-A /Volumes/test_zhist_zpool2/file_changed/.zfs/snapshot/t2/f1 {'st_mtime': 'Sun Nov  8 21:10:49 2015', 'st_size': 0}
-C /Volumes/test_zhist_zpool2/file_changed/.zfs/snapshot/t3/f1 {'st_mtime': 'Sun Nov  8 21:10:50 2015', 'st_size': 4}
-C /Volumes/test_zhist_zpool2/file_changed/.zfs/snapshot/t5/f1 {'st_mtime': 'Sun Nov  8 21:10:52 2015'}
-C /Volumes/test_zhist_zpool2/file_changed/.zfs/snapshot/t6/f1 {'st_mtime': 'Sun Nov  8 21:10:53 2015', 'st_size': 8}
-D /Volumes/test_zhist_zpool2/file_changed/.zfs/snapshot/t7/f1
-A /Volumes/test_zhist_zpool2/file_changed/f1 {'st_mtime': 'Sun Nov  8 21:10:56 2015', 'st_size': 0}
+A /zpools/test_zhist_zpool2/file_changed/.zfs/snapshot/t2/f1 {'st_mtime': 'Sun Nov  8 21:10:49 2015', 'st_size': 0}
+C /zpools/test_zhist_zpool2/file_changed/.zfs/snapshot/t3/f1 {'st_mtime': 'Sun Nov  8 21:10:50 2015', 'st_size': 4}
+C /zpools/test_zhist_zpool2/file_changed/.zfs/snapshot/t5/f1 {'st_mtime': 'Sun Nov  8 21:10:52 2015'}
+C /zpools/test_zhist_zpool2/file_changed/.zfs/snapshot/t6/f1 {'st_mtime': 'Sun Nov  8 21:10:53 2015', 'st_size': 8}
+D /zpools/test_zhist_zpool2/file_changed/.zfs/snapshot/t7/f1
+A /zpools/test_zhist_zpool2/file_changed/f1 {'st_mtime': 'Sun Nov  8 21:10:56 2015', 'st_size': 0}
 ```
 
 ## Test Suite
