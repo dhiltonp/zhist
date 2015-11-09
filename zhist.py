@@ -130,8 +130,8 @@ class ZHist:
             elif pre.stat_result == {}:
                 # print Added
                 tmp = {}
-                tmp['st_mtime'] = version.stat_result['st_mtime']
-                tmp['st_size'] = version.stat_result['st_size']
+                tmp['st_mtime'] = post.stat_result['st_mtime']
+                tmp['st_size'] = post.stat_result['st_size']
                 #mode, uid, gid
                 print("A "+post.path+" "+str(tmp))
                 pass
