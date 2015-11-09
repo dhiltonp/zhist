@@ -9,6 +9,7 @@ echo creating zpool: $ZPOOL
 zpool create $ZPOOL `pwd`/$ZPOOL
 export MOUNTPOINT=$(zfs get -H mountpoint $ZPOOL | awk '{print $3}')
 
+echo creating test filesystems
 # setup for test: check main fs (no actions needed)
 # also test behavior on non-zfs fs
 # make tests for sub-directories
