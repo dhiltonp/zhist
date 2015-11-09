@@ -89,11 +89,12 @@ class TestGetVersions(TestCase):
 
     def test_file_added(self):
         result = zhist.ZHist().get_versions(mountpoint+"file_added/", "f1")
+        result.sort(key=lambda v: v.snapshot_time)
         self.assertEqual(len(result), 4)
-        self.assertEquals(result[1].path, mountpoint+"file_added/f1")
+        self.assertEquals(result[0].stat_result, {})
+        self.assertEquals(result[1].path, mountpoint+'file_added/.zfs/snapshot/t1/f1')
         self.assertEquals(result[2].path, mountpoint+"file_added/.zfs/snapshot/t2/f1")
-        self.assertEquals(result[3].path, mountpoint+'file_added/.zfs/snapshot/t1/f1')
-        self.assertEquals(result[3].stat_result, {})
+        self.assertEquals(result[3].path, mountpoint+"file_added/f1")
 
     def test_file_removed(self):
         result = zhist.ZHist().get_versions(mountpoint+"file_removed/", "f1")

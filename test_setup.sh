@@ -35,6 +35,7 @@ echo foo > $MOUNTPOINT/no_snapshots/f1
 zfs create $ZPOOL/file_added
 zfs snapshot $ZPOOL/file_added@t1
 touch $MOUNTPOINT/file_added/f1
+sleep 1
 zfs snapshot $ZPOOL/file_added@t2
 
 # setup for test: file removed
