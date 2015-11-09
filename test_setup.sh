@@ -47,17 +47,28 @@ rm $MOUNTPOINT/file_removed/f1
 # setup for test: file exists, has multiple changes
 zfs create $ZPOOL/file_changed
 zfs snapshot $ZPOOL/file_changed@t1
+sleep 1
 touch $MOUNTPOINT/file_changed/f1
 zfs snapshot $ZPOOL/file_changed@t2
+sleep 1
+echo foo > $MOUNTPOINT/file_changed/f1
+zfs snapshot $ZPOOL/file_changed@t3
+sleep 1
+zfs snapshot $ZPOOL/file_changed@t4
+sleep 1
+echo baz > $MOUNTPOINT/file_changed/f1
+zfs snapshot $ZPOOL/file_changed@t5
+sleep 1
+echo foo >> $MOUNTPOINT/file_changed/f1
+zfs snapshot $ZPOOL/file_changed@t6
+sleep 1
+rm $MOUNTPOINT/file_changed/f1
+zfs snapshot $ZPOOL/file_changed@t7
+sleep 1
+zfs snapshot $ZPOOL/file_changed@t8
+sleep 1
+zfs snapshot $ZPOOL/file_changed@t9
 
-#zfs snapshot $ZPOOL/file_changed@t2
-#echo foo > $MOUNTPOINT/file_changed/f1
-#zfs snapshot $ZPOOL/file_changed@t3
-#zfs snapshot $ZPOOL/file_changed@t4
-#echo baz > $MOUNTPOINT/file_changed/f1
-#zfs snapshot $ZPOOL/file_changed@t5
-#echo foo >> $MOUNTPOINT/file_changed/f1
-#zfs snapshot $ZPOOL/file_changed@t6
 
 # setup for test: deleted file recovery
 #zfs clone $ZPOOL/file_changed@t6 file_deleted

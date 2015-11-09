@@ -112,8 +112,8 @@ class ZHist:
                 versions.sort(key=lambda v: v.snapshot_time)
                 for version in versions:
                     print("%s %d" % (version.path, version.snapshot_time))
-                #import pprint
-                #pprint.pprint(versions)
+                import pprint
+                pprint.pprint(versions)
                 # by default, show all existing versions.
                 # if a flag is shown,
                 #mount_points.append(mount_point)
@@ -129,15 +129,18 @@ class ZHist:
         versions = []
         current_version = mount_point+zfs_path
         if os.path.exists(current_version):
-            versions.append(Version(current_version, int(time.time()), os.lstat(current_version)))
+            version = Version(current_version, int(time.time()), None)
+            versions.append(version)
+        else:
+            version = Version(current_version, int(time.time()), None)
+            versions.append(version)
 
         snapshot_dir = mount_point+".zfs/snapshot/"
         for snapshot in self.get_snapshots(snapshot_dir):
             possible_version = snapshot_dir+snapshot+"/"+zfs_path
             version_stat = self.stat(possible_version, mount_point, snapshot)
             snapshot_time = get_snapshot_time(mount_point, snapshot)
-            if version_stat:
-                versions.append(Version(possible_version, snapshot_time, version_stat))
+            versions.append(Version(possible_version, snapshot_time, version_stat))
 
         return versions
 
