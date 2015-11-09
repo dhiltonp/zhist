@@ -109,30 +109,59 @@ class ZHist:
             try:
                 mount_point, zfs_path = self.zfs_split(f)
                 versions = self.get_versions(mount_point, zfs_path)
-                versions.sort(key=lambda v: v.snapshot_time)
-                for version in versions:
-                    print("%s %d" % (version.path, version.snapshot_time))
-                import pprint
-                pprint.pprint(versions)
-                # by default, show all existing versions.
-                # if a flag is shown,
-                #mount_points.append(mount_point)
-                #self.zfs_diff(mount_point, zfs_path, filename)
+                self.print_roll_up(versions)
             except Exception as e:
                 print(e)
+
+    def print_roll_up(self, versions):
+        versions.sort(key=lambda v: v.snapshot_time)
+
+        # make values human readable
+        for version in versions:
+            if version.stat_result != {}:
+                version.stat_result['st_ctime'] = time.ctime(version.stat_result['st_ctime'])
+                version.stat_result['st_mtime'] = time.ctime(version.stat_result['st_mtime'])
+
+        # display changed values
+        for pre, post in zip(versions, versions[1:]):
+            # display all differences post has from pre
+            if pre.stat_result == post.stat_result:
+                continue
+            elif pre.stat_result == {}:
+                # print Added
+                tmp = {}
+                tmp['st_mtime'] = version.stat_result['st_mtime']
+                tmp['st_size'] = version.stat_result['st_size']
+                #mode, uid, gid
+                print("A "+post.path+" "+str(tmp))
+                pass
+            elif post.stat_result == {}:
+                # print Deleted
+                print("D "+post.path)
+            else:
+                # diff keys
+                diff = {}
+                for key in pre.stat_result.keys():
+                    if pre.stat_result[key] != post.stat_result[key]:
+                        diff[key] = post.stat_result[key]
+                if diff['st_ctime'] == diff['st_mtime']:
+                    del diff['st_ctime']  # file modified - mtime implies ctime also changed
+                else:
+                    del diff['st_mtime']  # permissions changed? - only ctime implies stats changed, not content
+                print "C "+post.path+" "+str(diff)
 
     def get_versions(self, mount_point, zfs_path):
         """
         uses a mount_point and zfs_path to get all available versions of a file.
         Returns all found versions, along with the stat results
         """
-        versions = []
+        versions = [Version("in the beginning...", -1, {})]
         current_version = mount_point+zfs_path
         if os.path.exists(current_version):
-            version = Version(current_version, int(time.time()), os.lstat(current_version))
+            version = Version(current_version, int(time.time()), self._stat_to_dict(os.lstat(current_version)))
             versions.append(version)
         else:
-            version = Version(current_version, int(time.time()), None)
+            version = Version(current_version, int(time.time()), {})
             versions.append(version)
 
         snapshot_dir = mount_point+".zfs/snapshot/"
@@ -142,21 +171,28 @@ class ZHist:
             snapshot_time = get_snapshot_time(mount_point, snapshot)
             versions.append(Version(possible_version, snapshot_time, version_stat))
 
+        # this is just for debugging, not display
         return versions
+
+    def _stat_to_dict(self, stat):
+        stat_dict = {}
+        for field in ["st_mode", "st_ino", "st_nlink", "st_uid", "st_gid", "st_size", "st_mtime", "st_ctime"]:
+            stat_dict[field] = getattr(stat, field)
+        return stat_dict
 
     def stat(self, version, mount_point, snapshot):
         with temporary_mount_snapshot(mount_point, snapshot):
             if os.path.exists(version):
-                return os.lstat(version)
-            return None
+                return self._stat_to_dict(os.lstat(version))
+            return {}
 
     def get_snapshots(self, snapshot_dir):
         try:
             return os.listdir(snapshot_dir)
         except OSError:
-            sys.stderr.write("Cannot read %s; is this ZFS?\n")
+            sys.stderr.write("Cannot read %s; is this ZFS?\n" % snapshot_dir)
             if platform.system() == "Darwin":
-                sys.stderr.write("You need to reset the zpool via export/import (see https://github.com/openzfsonosx/zfs/issues/232).")
+                sys.stderr.write("You need to reset the zpool via export/import (see https://github.com/openzfsonosx/zfs/issues/232).\n")
             raise
 
     def zfs_diff(self, mount_point, zfs_path, filename):
