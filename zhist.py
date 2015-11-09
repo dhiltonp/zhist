@@ -148,7 +148,9 @@ class ZHist:
                 if diff['st_ctime'] == diff['st_mtime']:
                     del diff['st_ctime']  # file modified - mtime implies ctime also changed
                 else:
-                    del diff['st_mtime']  # permissions changed? - only ctime implies stats changed, not content
+                    # multiple changes could have happened between snapshots
+                    if diff['st_mtime'] == diff['st_ctime']:
+                        del diff['st_mtime']  # permissions changed? - only ctime implies stats changed, not content
                 print "C "+post.path+" "+str(diff)
 
     def get_versions(self, mount_point, zfs_path):
