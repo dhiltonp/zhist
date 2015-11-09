@@ -100,12 +100,6 @@ class ZHist:
         return mount_point, zfs_path
 
     def ls(self, files):
-        files = files[0]
-        if len(files) == 0:
-            files.append('.')
-
-        mount_points = []
-
         for f in files:
             try:
                 mount_point, zfs_path = self.zfs_split(f)
@@ -213,13 +207,18 @@ def parse_arguments():
     parser.add_argument("file", action="append", nargs='*', help="file or directories to list")
     #options: show checksum, size, date modified...
     args = parser.parse_args()
+
+    # add default argument?
+    if len(args.file[0]) == 0:
+        args.file[0].append(".")
+
     return args
 
 
 def main():
     args = parse_arguments()
     osx_test()
-    ZHist().ls(args.file)
+    ZHist().ls(args.file[0])
 
 if __name__ == "__main__":
     sys.exit(main())
