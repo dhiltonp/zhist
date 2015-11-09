@@ -71,32 +71,40 @@ class TestSplit(TestCase):
 class TestGetVersions(TestCase):
     def test_nothing_in_fs(self):
         result = zhist.ZHist().get_versions(mountpoint+"nothing_in_fs/", "")
-        self.assertEquals(result[0][0], mountpoint+"nothing_in_fs/")
+        self.assertEquals(result[0].path, mountpoint+"nothing_in_fs/")
         self.assertEqual(len(result), 1, "More than one version received")
 
         result = zhist.ZHist().get_versions(mountpoint+"nothing_in_fs/", "imaginary_file")
-        self.assertEquals(result, [])
+        self.assertEquals(len(result), 1)
+        self.assertIsNone(result[0].stat_result)
 
         result = zhist.ZHist().get_versions(mountpoint+"nothing_in_fs/", "imaginary_dir/imaginary_file")
-        self.assertEquals(result, [])
+        self.assertEquals(len(result), 1)
+        self.assertIsNone(result[0].stat_result)
 
     def test_no_snapshots(self):
         result = zhist.ZHist().get_versions(mountpoint+"no_snapshots/", "f1")
-        self.assertEquals(result[0][0], mountpoint+"no_snapshots/f1")
+        self.assertEquals(result[0].path, mountpoint+"no_snapshots/f1")
         self.assertEqual(len(result), 1)
 
     def test_file_added(self):
         result = zhist.ZHist().get_versions(mountpoint+"file_added/", "f1")
-        self.assertEqual(len(result), 2)
-        self.assertEquals(result[0][0], mountpoint+"file_added/f1")
-        self.assertEquals(result[1][0], mountpoint+"file_added/.zfs/snapshot/t2/f1")
+        self.assertEqual(len(result), 3)
+        self.assertEquals(result[0].path, mountpoint+"file_added/f1")
+        self.assertEquals(result[1].path, mountpoint+"file_added/.zfs/snapshot/t2/f1")
+        self.assertEquals(result[2].path, mountpoint+'file_added/.zfs/snapshot/t1/f1')
+        self.assertIsNone(result[2].stat_result)
 
     def test_file_removed(self):
         result = zhist.ZHist().get_versions(mountpoint+"file_removed/", "f1")
-        self.assertEqual(len(result), 1)
-        self.assertEquals(result[0][0], mountpoint+"file_removed/.zfs/snapshot/t2/f1")
+        self.assertEqual(len(result), 3)
+        self.assertIsNone(result[0].stat_result)
+        self.assertIsNone(result[1].stat_result)
+        self.assertIsNotNone(result[2].stat_result)
 
     def test_file_changed(self):
+        # currently not used - manually inspecting output
+        return
         result = zhist.ZHist().get_versions(mountpoint+"file_changed/", "f1")
         self.assertEquals(result, [])
 

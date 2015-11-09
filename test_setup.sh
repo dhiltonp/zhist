@@ -68,7 +68,7 @@ sleep 1
 zfs snapshot $ZPOOL/file_changed@t8
 sleep 1
 zfs snapshot $ZPOOL/file_changed@t9
-
+touch $MOUNTPOINT/file_changed/f1
 
 # setup for test: deleted file recovery
 #zfs clone $ZPOOL/file_changed@t6 file_deleted
