@@ -19,3 +19,13 @@ C /Volumes/test_zhist_zpool2/file_changed/.zfs/snapshot/t6/f1 {'st_mtime': 'Sun 
 D /Volumes/test_zhist_zpool2/file_changed/.zfs/snapshot/t7/f1
 A /Volumes/test_zhist_zpool2/file_changed/f1 {'st_mtime': 'Sun Nov  8 21:10:56 2015', 'st_size': 0}
 ```
+
+## Test Suite
+
+The test suite is basic, but useful. A test zpool is created and populated, against which some tests are run.
+
+```
+./test_setup.sh
+run tests from intellij/pycharm
+./test_teardown.sh
+```
