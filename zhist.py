@@ -112,22 +112,25 @@ def temporary_mount_snapshot(mount_point, snapshot):
     volume_name = get_volume_name(mount_point)
     full_name = volume_name+"@"+snapshot
 
-    retval = subprocess.call(["zfs", "mount", full_name])
     already_mounted = False
+    with open(os.devnull, "w") as fnull:
+        retval = subprocess.call(["zfs", "mount", full_name], stderr=fnull)
 
-    if retval == 0:
-        pass
-    elif retval == 1:
-        already_mounted = True
-    else:
-        sys.stderr.write("Unable to mount "+full_name+", results will be incomplete. (%d)\n" % retval)
+        if retval == 0:
+            pass
+        elif retval == 1:
+            already_mounted = True
+        else:
+            sys.stderr.write("Unable to mount "+full_name+", results will be incomplete. (%d)\n" % retval)
+
     try:
         yield
     finally:
         if not already_mounted:
-            retval = subprocess.call(["zfs", "unmount", full_name])
-            if retval != 0:
-                sys.stderr.write("Unable to unmount "+full_name+" sorry (%d)!\n" % retval)
+            with open(os.devnull, 'w') as fnull:
+                retval = subprocess.call(["zfs", "unmount", full_name], stderr=fnull, stdout=fnull)
+                if retval != 0:
+                    sys.stderr.write("Unable to unmount "+full_name+" sorry (%d)!\n" % retval)
 
 
 class ZHist:
@@ -201,21 +204,16 @@ class ZHist:
             return None
 
     def get_snapshots(self, snapshot_dir):
-        #subprocess.check_output("zfs set snapdir=visible test_zhist_zpool1/file_changed".split())
-        #subprocess.check_output("zfs mount test_zhist_zpool1/file_changed")
-        return os.listdir(snapshot_dir)
-        # https://openzfsonosx.org/wiki/FAQ#Q.29_How_can_I_access_the_.zfs_snapshot_directories.3F
-        # These notes seem out of date. I'll do what I can without them
-        #$ sudo zfs set snapdir=visible tank/bob
-        #$ sudo zfs mount tank/bob@yesterday
-        #$ ls -l /tank/bob/.zfs/snapshot/yesterday/
-
+        try:
+            return os.listdir(snapshot_dir)
+        except OSError:
+            sys.stderr.write("Cannot read %s; is this ZFS?\n")
+            if platform.system() == "Darwin":
+                sys.stderr.write("You need to reset the zpool via export/import (see https://github.com/openzfsonosx/zfs/issues/232).")
+            raise
 
     def zfs_diff(self, mount_point, zfs_path, filename):
         pass
-
-
-
 
 
 def osx_test():

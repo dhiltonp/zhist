@@ -96,7 +96,7 @@ class TestGetVersions(TestCase):
         self.assertEqual(len(result), 1)
         self.assertEquals(result[0][0], mountpoint+"file_removed/.zfs/snapshot/t2/f1")
 
-
     def test_file_changed(self):
         result = zhist.ZHist().get_versions(mountpoint+"file_changed/", "f1")
         self.assertEquals(result, [])
+
