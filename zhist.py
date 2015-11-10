@@ -36,13 +36,13 @@ def get_snapshot_time(mount_point, snapshot):
     volume_name = get_volume_name(mount_point)
     full_snapshot_name = volume_name+"@"+snapshot
     command = "zfs get -H -p -o value creation "+full_snapshot_name
-    output = subprocess.check_output(command.split()).strip()
+    output = subprocess.check_output(command.split()).strip().decode()
     return int(output)
 
 #maemoize
 def get_volume_name(mount_point):
     command = "zfs list -H -o name " + mount_point
-    output = subprocess.check_output(command.split()).strip()
+    output = subprocess.check_output(command.split()).strip().decode()
     return output
 
 
