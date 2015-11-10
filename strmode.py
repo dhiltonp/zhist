@@ -37,6 +37,8 @@ def strmode(mode):
     This returns a human-readable mode.
     It is a direct port of strmode from C. Just like strmode, it does not report ACL existence.
 
+    If you do not need python2 compatibility, use python3's stat.filemode.
+
     :param mode: st_mode, as returned from stat
     :return: human-readable mode like "-rw-r--r--". ACL existence not reported
     """
