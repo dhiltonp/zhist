@@ -130,6 +130,5 @@ class TestRollUp(TestCase):
         versions = zhist.ZHist().get_versions(mountpoint+"file_changed/", "f1")
         roll_up = zhist.ZHist().generate_roll_up(versions)
         changes = ''.join([line[0] for line in roll_up])
-        self.assertEqual(len(roll_up), 7)
         self.assertEqual(changes, "ACCCDAP")
 

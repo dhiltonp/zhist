@@ -27,10 +27,11 @@ import collections
 import argparse
 import platform
 import subprocess
+import strmode
 import sys, os, os.path
 from contextlib import contextmanager
 
-#maemoize
+
 def get_snapshot_time(mount_point, snapshot):
     volume_name = get_volume_name(mount_point)
     full_snapshot_name = volume_name+"@"+snapshot
@@ -119,6 +120,7 @@ class ZHist:
             if version.stat_result != {}:
                 version.stat_result['st_ctime'] = time.ctime(version.stat_result['st_ctime'])
                 version.stat_result['st_mtime'] = time.ctime(version.stat_result['st_mtime'])
+                version.stat_result['st_mode'] = strmode.strmode(version.stat_result['st_mode'])
 
         # display changed values
         for pre, post in zip(versions, versions[1:]):
