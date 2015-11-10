@@ -104,12 +104,15 @@ class ZHist:
             try:
                 mount_point, zfs_path = self.zfs_split(f)
                 versions = self.get_versions(mount_point, zfs_path)
-                self.print_roll_up(versions)
+                output = self.generate_roll_up(versions)
+                for line in output:
+                    print(line)
             except Exception as e:
                 print(e)
 
-    def print_roll_up(self, versions):
+    def generate_roll_up(self, versions):
         versions.sort(key=lambda v: v.snapshot_time)
+        output = []
 
         # make values human readable
         for version in versions:
@@ -128,24 +131,27 @@ class ZHist:
                 tmp['st_mtime'] = post.stat_result['st_mtime']
                 tmp['st_size'] = post.stat_result['st_size']
                 #mode, uid, gid
-                print("A "+post.path+" "+str(tmp))
+                output.append("A "+post.path+" "+str(tmp))
                 pass
             elif post.stat_result == {}:
                 # print Deleted
-                print("D "+post.path)
+                output.append("D "+post.path)
             else:
                 # diff keys
-                diff = {}
+                diff = collections.defaultdict(lambda: None)
                 for key in pre.stat_result.keys():
                     if pre.stat_result[key] != post.stat_result[key]:
                         diff[key] = post.stat_result[key]
+                # file modified - mtime implies ctime also changed
                 if diff['st_ctime'] == diff['st_mtime']:
-                    del diff['st_ctime']  # file modified - mtime implies ctime also changed
+                    del diff['st_ctime']
+                    output.append("C "+post.path+" "+str(dict(diff)))
+                # multiple changes could have happened between snapshots
                 else:
-                    # multiple changes could have happened between snapshots
                     if diff['st_mtime'] == diff['st_ctime']:
                         del diff['st_mtime']  # permissions changed? - only ctime implies stats changed, not content
-                print "C "+post.path+" "+str(diff)
+                    output.append("P "+post.path+" "+str(dict(diff)))
+        return output
 
     def get_versions(self, mount_point, zfs_path):
         """

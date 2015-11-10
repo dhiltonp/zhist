@@ -105,13 +105,31 @@ class TestGetVersions(TestCase):
         self.assertNotEqual(result[2].stat_result, {})
         self.assertEqual(result[3].stat_result, {})
 
-    def test_file_changed(self):
-        # currently not used
-        return
-        result = zhist.ZHist().get_versions(mountpoint+"file_changed/", "f1")
-        self.assertEquals(result, [])
+    def test_bad_get_snapshots(self):
+        result = zhist.ZHist().get_snapshots("/bin")
 
-    def test_print_roll_up(self):
-        result = zhist.ZHist().ls([["/Volumes/test_zhist_zpool2/file_changed/f1"]])
-        self.assertEquals(1, 1)
+        with self.assertRaises(OSError):
+            zhist.ZHist().get_snapshots("/bin/sh")
+
+
+class TestRollUp(TestCase):
+    def test_file_removed_roll_up(self):
+        versions = zhist.ZHist().get_versions(mountpoint+"file_removed/", "f1")
+        roll_up = zhist.ZHist().generate_roll_up(versions)
+        self.assertEqual(len(roll_up), 2)
+        self.assertEqual(roll_up[0][0], "A")
+        self.assertEqual(roll_up[1][0], "D")
+
+    def test_file_added_roll_up(self):
+        versions = zhist.ZHist().get_versions(mountpoint+"file_added/", "f1")
+        roll_up = zhist.ZHist().generate_roll_up(versions)
+        self.assertEqual(len(roll_up), 1)
+        self.assertEqual(roll_up[0][0], "A")
+
+    def test_file_changed_roll_up(self):
+        versions = zhist.ZHist().get_versions(mountpoint+"file_changed/", "f1")
+        roll_up = zhist.ZHist().generate_roll_up(versions)
+        changes = ''.join([line[0] for line in roll_up])
+        self.assertEqual(len(roll_up), 7)
+        self.assertEqual(changes, "ACCCDAP")
 
