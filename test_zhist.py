@@ -92,17 +92,18 @@ class TestGetVersions(TestCase):
         result.sort(key=lambda v: v.snapshot_time)
         self.assertEqual(len(result), 4)
         self.assertEquals(result[0].stat_result, {})
-        self.assertEquals(result[1].path, mountpoint+'file_added/.zfs/snapshot/t1/f1')
-        self.assertEquals(result[2].path, mountpoint+"file_added/.zfs/snapshot/t2/f1")
-        self.assertEquals(result[3].path, mountpoint+"file_added/f1")
+        self.assertEquals(result[1].stat_result, {})
+        self.assertNotEquals(result[2].stat_result, {})
+        self.assertNotEquals(result[3].stat_result, {})
 
     def test_file_removed(self):
         result = zhist.ZHist().get_versions(mountpoint+"file_removed/", "f1")
+        result.sort(key=lambda v: v.snapshot_time)
         self.assertEqual(len(result), 4)
-        self.assertEquals(result[0].stat_result, {})
-        self.assertEquals(result[1].stat_result, {})
-        self.assertNotEquals(result[2].stat_result, {})
-        self.assertEquals(result[3].stat_result, {})
+        self.assertEqual(result[0].stat_result, {})
+        self.assertEqual(result[1].stat_result, {})
+        self.assertNotEqual(result[2].stat_result, {})
+        self.assertEqual(result[3].stat_result, {})
 
     def test_file_changed(self):
         # currently not used
