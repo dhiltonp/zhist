@@ -108,6 +108,8 @@ class ZHist:
                 output = self.generate_roll_up(versions)
                 for line in output:
                     print(line)
+                if len(output) == 0:
+                    sys.stderr.write("zhist: cannot access '%s': no such file or directory\n" % f)
             except Exception as e:
                 print(e)
 
@@ -195,9 +197,9 @@ class ZHist:
         try:
             return os.listdir(snapshot_dir)
         except OSError:
-            sys.stderr.write("Cannot read %s; is this ZFS?\n" % snapshot_dir)
+            sys.stderr.write("zhist: cannot read '%s': is this filesystem ZFS?\n" % snapshot_dir)
             if platform.system() == "Darwin":
-                sys.stderr.write("You need to reset the zpool via export/import (see https://github.com/openzfsonosx/zfs/issues/232).\n")
+                sys.stderr.write("You may need to reset the zpool via export/import (see https://github.com/openzfsonosx/zfs/issues/232).\n")
             raise
 
     def zfs_diff(self, mount_point, zfs_path, filename):
