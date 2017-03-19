@@ -42,8 +42,10 @@ zfs snapshot $ZPOOL/file_added@t2
 # setup for test: file removed
 zfs create $ZPOOL/file_removed
 zfs snapshot $ZPOOL/file_removed@t1
+sleep 1
 touch $MOUNTPOINT/file_removed/f1
 zfs snapshot $ZPOOL/file_removed@t2
+sleep 1
 rm $MOUNTPOINT/file_removed/f1
 
 # setup for test: file exists, has multiple changes
